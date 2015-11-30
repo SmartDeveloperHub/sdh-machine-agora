@@ -25,6 +25,8 @@ curator:
   environment:
     - TERM=xterm
     - CURATOR_CONFIG=sdh.curator.server.config.ProductionConfig
+  ports:
+    - 5007:5007
 
 foredis:
   hostname: foredis
