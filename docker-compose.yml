@@ -10,10 +10,11 @@ rabbit:
     - 15672:15672
 
 curedis:
-  image: sameersbn/redis:latest
+  image: redis
   hostname: curedis
   domainname: localdomain
-  restart: always
+  volumes:
+    - /usr/lib/sdhcurator/store
 
 curator:
   build: curator
@@ -27,6 +28,8 @@ curator:
     - CURATOR_CONFIG=sdh.curator.server.config.ProductionConfig
   ports:
     - 5007:5007
+  volumes_from:
+    - curedis
 
 foredis:
   hostname: foredis
