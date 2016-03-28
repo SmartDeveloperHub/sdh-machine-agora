@@ -1,4 +1,0 @@
-#!/bin/sh
-/usr/lib/sdhcurator/.env/bin/pip install --upgrade --pre SDH-Curator
-/usr/lib/sdhcurator/.env/bin/python /usr/lib/sdhcurator/.env/bin/curator &
-sleep 1

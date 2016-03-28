@@ -1,74 +1,116 @@
+redis:
+  hostname: redis
+  domainname: localdomain
+  image: smartdeveloperhub/knowledge:0.3.0
+  volumes:
+    - /usr/lib/agora/graph_store
+
 rabbit:
-  image: rabbitmq:3-management
   hostname: rabbit
   domainname: localdomain
-  restart: always
-  environment:
-    - TERM=xterm
+  image: rabbitmq:3-management
   ports:
-    - 5672:5672
-    - 15672:15672
+    - "5672:5672"
+    - "15672:15672"
 
-curedis:
-  image: sameersbn/redis:latest
-  hostname: curedis
+mongo:
+  hostname: mongo
   domainname: localdomain
-  restart: always
+  image: mongo
+
+core:
+  image: smartdeveloperhub/agora
+  hostname: agora
+  domainname: localdomain
+  links:
+    - redis:redis
+  environment:
+    - FOUNTAIN_DB_HOST=redis
+    - LOG_LEVEL=DEBUG
+  volumes_from:
+    - redis
+
+scholar:
+  image: smartdeveloperhub/agora-scholar
+  hostname: scholar
+  domainname: localdomain
+  links:
+    - redis:redis
+    - core:agora
+    - rabbit:rabbit
+    - mongo:mongodb
+  environment:
+    - API_PORT=5010
+    - AMQP_HOST=rabbit
+    - AMQP_PORT=5672
+    - AGORA_HOST=agora
+    - AGORA_PORT=80
+    - GRAPH_THROTTLING=100
+    - COLLECT_THROTTLING=1000
+    - DB_HOST=redis
+    - DB_DB=13
+    - MIN_CACHE_TIME=1000
+    - PASS_THRESHOLD=0.01
+    - FRAGMENT_MIN_SYNC_TIME=3600
+    - EXCHANGE_NAME=stoa
+    - QUEUE_NAME=scholar_requests
+    - TOPIC_PATTERN=scholar.request.*
+    - RESPONSE_RK_PREFIX=scholar.response
+    - MONGO_HOST=mongodb
+    - MONGO_DB=scholar
 
 curator:
-  build: curator
+  image: smartdeveloperhub/agora-curator
   hostname: curator
   domainname: localdomain
   links:
     - rabbit:rabbit
-    - curedis:redis
+    - redis:redis
+    - core:agora
+    - mongo:mongodb
   environment:
-    - TERM=xterm
-    - CURATOR_CONFIG=sdh.curator.server.config.ProductionConfig
-  ports:
-    - 5007:5007
+    - API_PORT=5011
+    - DB_DB=12
+    - DB_HOST=redis
+    - AMQP_PORT=5672
+    - AMQP_HOST=rabbit
+    - AGORA_HOST=agora
+    - AGORA_PORT=80
+    - QUEUE_NAME=curator_requests
+    - RESPONSE_RK_PREFIX=curator.response
+    - TOPIC_PATTERN=curator.request.*
+    - FRAGMENT_MIN_SYNC_TIME=3600
+    - MONGO_HOST=mongodb
+    - MONGO_DB=scholar
 
-foredis:
-  hostname: foredis
-  domainname: localdomain
-  image: smartdeveloperhub/knowledge:0.2.0
-  volumes:
-    - /usr/lib/agora/graph_store
-
-fountain:
-  image: smartdeveloperhub/agora-fountain
-  hostname: fountain
-  domainname: localdomain
-  links:
-    - foredis:redis
-  environment:
-    - TERM=xterm
-    - FOUNTAIN_CONFIG=agora.fountain.server.config.ProductionConfig
-  volumes_from:
-    - foredis
-
-planner:
-  image: smartdeveloperhub/agora-planner
-  hostname: planner
+fragments:
+  image: smartdeveloperhub/agora-fragments
+  hostname: fragments
   domainname: localdomain
   links:
-    - fountain:fountain
-    - foredis:foredis
+    - rabbit:rabbit
+    - core:agora
   environment:
-    - TERM=xterm
-    - PLANNER_CONFIG=agora.planner.server.config.ProductionConfig
+    - API_PORT=5006
+    - BROKER_HOST=rabbit
+    - BROKER_PORT=5672
+    - AGORA_HOST=agora
+    - AGORA_PORT=80
+    - EXCHANGE_NAME=stoa
+    - TOPIC_PATTERN=scholar.request
+    - RESPONSE_PREFIX=scholar.response
 
 nginx:
   build: nginx
   hostname: nginx
   domainname: localdomain
   links:
-    - planner:planner
-    - fountain:fountain
+    - core:agora
+    - scholar:scholar
+    - curator:curator
+    - fragments:fragments
   ports:
-    - "9009:80"
-  volumes:
-    - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    - "9002:80"
 
 
 
