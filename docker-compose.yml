@@ -81,7 +81,7 @@ curator:
     - TOPIC_PATTERN=curator.request.*
     - FRAGMENT_MIN_SYNC_TIME=3600
     - MONGO_HOST=mongodb
-    - MONGO_DB=scholar
+    - MONGO_DB=curator
     - EXCHANGE_NAME=sdh
 
 fragments:
@@ -111,7 +111,7 @@ nginx:
     - curator:curator
     - fragments:fragments
   ports:
-    - "9002:80"
+    - "9009:80"
 
 
 
